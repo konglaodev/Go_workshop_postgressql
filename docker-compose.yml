@@ -1,0 +1,52 @@
+# ref: https://docs.docker.com/compose/compose-file/
+version: '3.9'
+
+services:
+    # Database
+    db:
+        image: postgres
+        container_name: sml-container
+        volumes:
+            - db_data:/var/lib/postgresql/data
+        ports:
+            - '5432:5432'
+        environment:
+            POSTGRES_PASSWORD: 'banana'
+        networks:
+            - pgsite
+
+    k6:
+        image: loadimpact/k6
+        container_name: k6
+        environment:
+            - K6_OUT=influxdb=http://influxdb:8086/k6
+        volumes:
+            - ./scripts:/scripts
+
+    influxdb:
+        image: influxdb:1.8.10
+        container_name: influxdb
+        environment:
+            - INFLUXDB_DB=k6
+            - INFLUXDB_HTTP_MAX_BODY_SIZE=0
+        ports:
+            - 8086:8086
+        volumes:
+            - ./data/influxdb:/var/lib/influxdb
+
+    grafana:
+        image: grafana/grafana
+        container_name: grafana
+        environment:
+            - GF_AUTH_ANONYMOUS_ENABLED=true
+            - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+        ports:
+            - 3000:3000
+        volumes:
+            - ./data/grafana:/var/lib/grafana
+
+networks:
+    pgsite:
+
+volumes:
+    db_data:
